@@ -39,3 +39,4 @@
 2024-06-17T08:44:04  refactor(scan): assert exit codes in tests
 2024-07-02T15:01:11  docs: clarify usage notes
 2024-07-17T10:18:18  feat(config): add color + severity icons
+2024-08-02T17:35:25  docs(detect): handle CRLF line endings
