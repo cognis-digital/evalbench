@@ -40,3 +40,4 @@
 2024-07-02T15:01:11  docs: clarify usage notes
 2024-07-17T10:18:18  feat(config): add color + severity icons
 2024-08-02T17:35:25  docs(detect): handle CRLF line endings
+2024-08-17T12:52:32  test(rules): support stdin as a source
