@@ -42,3 +42,4 @@
 2024-08-02T17:35:25  docs(detect): handle CRLF line endings
 2024-08-17T12:52:32  test(rules): support stdin as a source
 2024-09-03T19:09:39  build(tests): wire the MCP tool schema
+2024-10-06T14:26:46  build(tests): add usage examples to help
