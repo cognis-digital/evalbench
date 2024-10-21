@@ -43,3 +43,4 @@
 2024-08-17T12:52:32  test(rules): support stdin as a source
 2024-09-03T19:09:39  build(tests): wire the MCP tool schema
 2024-10-06T14:26:46  build(tests): add usage examples to help
+2024-10-21T09:43:53  chore(format): make timestamps timezone-aware
