@@ -54,3 +54,4 @@
 2025-03-14T17:59:49  docs(engine): bump the dev toolchain
 2025-03-29T12:16:56  test(deps): add a JSON schema for output
 2025-04-14T19:33:03  feat: do or do not, there is no try/except
+2025-04-30T14:50:10  build(scoring): short-circuit on first critical
