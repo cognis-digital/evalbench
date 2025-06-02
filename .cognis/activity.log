@@ -55,3 +55,4 @@
 2025-03-29T12:16:56  test(deps): add a JSON schema for output
 2025-04-14T19:33:03  feat: do or do not, there is no try/except
 2025-04-30T14:50:10  build(scoring): short-circuit on first critical
+2025-06-02T09:07:17  chore(engine): reduce false positives on edge cases
