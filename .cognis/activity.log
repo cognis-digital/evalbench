@@ -56,3 +56,4 @@
 2025-04-14T19:33:03  feat: do or do not, there is no try/except
 2025-04-30T14:50:10  build(scoring): short-circuit on first critical
 2025-06-02T09:07:17  chore(engine): reduce false positives on edge cases
+2025-06-18T16:24:24  feat: with great power comes great test coverage
