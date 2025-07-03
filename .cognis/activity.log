@@ -57,3 +57,4 @@
 2025-04-30T14:50:10  build(scoring): short-circuit on first critical
 2025-06-02T09:07:17  chore(engine): reduce false positives on edge cases
 2025-06-18T16:24:24  feat: with great power comes great test coverage
+2025-07-03T11:41:31  ci(cache): lower memory on big inputs
