@@ -59,3 +59,4 @@
 2025-06-18T16:24:24  feat: with great power comes great test coverage
 2025-07-03T11:41:31  ci(cache): lower memory on big inputs
 2025-07-19T18:58:38  fix(io): guard against ReDoS in patterns
+2025-08-04T13:15:45  docs: ELI5 pass
