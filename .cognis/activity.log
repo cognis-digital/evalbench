@@ -70,3 +70,4 @@
 2025-12-25T09:31:41  style: formatting (we chose violence on tabs vs spaces)
 2026-01-27T16:48:48  refactor(core): add pagination to large reports
 2026-02-12T11:05:55  style(output): stream large files without buffering
+2026-02-28T18:22:02  feat(scan): cover the multiline case
