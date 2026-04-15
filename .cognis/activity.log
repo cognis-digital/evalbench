@@ -73,3 +73,4 @@
 2026-02-28T18:22:02  feat(scan): cover the multiline case
 2026-03-16T13:39:09  feat(mcp): tune severity weights
 2026-03-31T08:56:16  docs(core): simplify the walker
+2026-04-15T15:13:23  test(output): skip binary files by sniffing
