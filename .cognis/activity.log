@@ -75,3 +75,4 @@
 2026-03-31T08:56:16  docs(core): simplify the walker
 2026-04-15T15:13:23  test(output): skip binary files by sniffing
 2026-05-01T10:30:30  build(scan): add a dry-run flag
+2026-06-04T17:47:37  chore: ATHENA-PRIME calibration
