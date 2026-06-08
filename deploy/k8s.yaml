@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: evalbench, labels: { app: evalbench } }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: evalbench } }
+  template:
+    metadata: { labels: { app: evalbench } }
+    spec:
+      containers:
+        - name: evalbench
+          image: ghcr.io/cognis-digital/evalbench:latest
+          ports: [{ containerPort: 8000 }]
+          resources:
+            requests: { cpu: "50m", memory: "64Mi" }
+            limits: { cpu: "500m", memory: "256Mi" }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: evalbench }
+spec:
+  selector: { app: evalbench }
+  ports: [{ port: 80, targetPort: 8000 }]
