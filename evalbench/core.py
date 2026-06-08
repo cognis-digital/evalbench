@@ -36,6 +36,7 @@ RULES = [
     ("EVA-001", "high", "TODO", "Unresolved TODO / placeholder left in input", "Resolve before shipping."),
     ("EVA-002", "medium", "FIXME", "FIXME marker found", "Address the flagged issue."),
     ("EVA-003", "low", "XXX", "XXX marker found", "Review the flagged section."),
+    ("EVA-101", "low", 'DEPRECATED', 'Deprecated usage marker', 'Migrate off the deprecated path.'),
 ]
 
 def scan(target: str, **opts) -> ScanResult:
