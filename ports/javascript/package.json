@@ -1,0 +1,10 @@
+{
+  "name": "@cognis/evalbench",
+  "version": "0.2.0",
+  "description": "JavaScript port of evalbench (Cognis Neural Suite)",
+  "bin": {
+    "evalbench": "index.js"
+  },
+  "license": "LicenseRef-COCL-1.0",
+  "type": "module"
+}
