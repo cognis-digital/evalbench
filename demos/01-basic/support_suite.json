@@ -1,0 +1,42 @@
+{
+  "name": "support-agent",
+  "threshold": 0.75,
+  "cases": [
+    {
+      "id": "greet",
+      "input": "customer says hello",
+      "output": "Hello! Thanks for reaching out — how can I help you today?",
+      "assertions": [
+        { "type": "contains", "value": "hello", "ignore_case": true },
+        { "type": "max_tokens", "value": 20 }
+      ]
+    },
+    {
+      "id": "refund_json",
+      "input": "please refund order 42",
+      "output": "{\"action\": \"refund\", \"order_id\": 42, \"amount\": 19.99}",
+      "assertions": [
+        { "type": "is_json" },
+        { "type": "json_path", "value": "action", "expected": "refund" },
+        { "type": "json_path", "value": "order_id", "expected": 42 }
+      ]
+    },
+    {
+      "id": "no_pii",
+      "input": "confirm my card on file",
+      "output": "Your card ending in 4242 is confirmed on file.",
+      "assertions": [
+        { "type": "regex", "value": "\\b(?:\\d[ -]?){13,16}\\b" }
+      ]
+    },
+    {
+      "id": "summary_len",
+      "input": "summarize the ticket",
+      "output": "The customer requested a refund for a duplicate charge on order 42.",
+      "assertions": [
+        { "type": "min_tokens", "value": 8 },
+        { "type": "similarity", "value": "customer requested a refund for a duplicate charge", "threshold": 0.5 }
+      ]
+    }
+  ]
+}
