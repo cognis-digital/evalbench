@@ -1,11 +1,46 @@
-"""evalbench — part of the Cognis Neural Suite."""
-try:  # re-export the tool's public API + identity from core
-    from evalbench.core import *  # noqa: F401,F403
-except Exception:  # pragma: no cover
-    pass
-try:
-    from evalbench.core import TOOL_NAME, TOOL_VERSION
-except Exception:  # pragma: no cover
-    TOOL_NAME = "evalbench"
-    TOOL_VERSION = "0.1.0"
+"""EVALBENCH — offline LLM/prompt eval harness with assertions + regression gate."""
+from .core import (
+    TOOL_NAME,
+    TOOL_VERSION,
+    EvalError,
+    AssertResult,
+    CaseResult,
+    RunResult,
+    Finding,
+    BUNDLED_SUITE,
+    evaluate_case,
+    evaluate_suite,
+    diff_runs,
+    validate_schema,
+    resolve_json_path,
+    cosine_similarity,
+    levenshtein,
+    levenshtein_ratio,
+    tokenize,
+    render_run_table,
+    render_diff_table,
+)
+
+__all__ = [
+    "TOOL_NAME",
+    "TOOL_VERSION",
+    "EvalError",
+    "AssertResult",
+    "CaseResult",
+    "RunResult",
+    "Finding",
+    "BUNDLED_SUITE",
+    "evaluate_case",
+    "evaluate_suite",
+    "diff_runs",
+    "validate_schema",
+    "resolve_json_path",
+    "cosine_similarity",
+    "levenshtein",
+    "levenshtein_ratio",
+    "tokenize",
+    "render_run_table",
+    "render_diff_table",
+]
+
 __version__ = TOOL_VERSION
