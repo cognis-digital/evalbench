@@ -16,7 +16,7 @@
 </div>
 
 ```bash
-pip install cognis-evalbench
+pip install "git+https://github.com/cognis-digital/evalbench.git"
 evalbench scan .            # → prioritized findings in seconds
 ```
 
@@ -48,7 +48,7 @@ CI for agents
 ## Quick start
 
 ```bash
-pip install cognis-evalbench
+pip install "git+https://github.com/cognis-digital/evalbench.git"
 evalbench --version
 evalbench scan .                       # scan current project
 evalbench scan . --format json         # machine-readable

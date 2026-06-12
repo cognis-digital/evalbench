@@ -52,7 +52,7 @@ import json
 import math
 import re
 from dataclasses import dataclass, field, asdict
-from typing import Any, Callable
+from typing import Any
 
 TOOL_NAME = "evalbench"
 TOOL_VERSION = "2.0.0"
