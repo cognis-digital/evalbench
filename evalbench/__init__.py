@@ -19,6 +19,11 @@ from .core import (
     tokenize,
     render_run_table,
     render_diff_table,
+    # compatibility shim
+    Assertion,
+    Suite,
+    run_suite,
+    compare_baseline,
 )
 
 __all__ = [
@@ -41,6 +46,11 @@ __all__ = [
     "tokenize",
     "render_run_table",
     "render_diff_table",
+    # compatibility shim
+    "Assertion",
+    "Suite",
+    "run_suite",
+    "compare_baseline",
 ]
 
 __version__ = TOOL_VERSION

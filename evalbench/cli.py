@@ -158,11 +158,51 @@ def build_parser() -> argparse.ArgumentParser:
     types.add_argument("--format", choices=["table", "json"], default="table")
     types.set_defaults(func=_cmd_types)
 
+    # "assertions" is an alias for "types" (backward-compat)
+    assertions = sub.add_parser("assertions", help="list supported assertion types (alias for types)")
+    assertions.add_argument("--format", choices=["table", "json"], default="table")
+    assertions.set_defaults(func=_cmd_types)
+
     return p
+
+
+def _reorder_global_flags(argv: list[str]) -> list[str]:
+    """Move global flags (--format, --output) that appear before a subcommand to after it.
+
+    Allows: evalbench --format json assertions  (as well as the normal form)
+    """
+    _SUBCOMMANDS = {"run", "demo", "gate", "types", "assertions"}
+    # find position of first recognised subcommand
+    sub_pos = None
+    for i, arg in enumerate(argv):
+        if arg in _SUBCOMMANDS:
+            sub_pos = i
+            break
+    if sub_pos is None or sub_pos == 0:
+        return argv  # nothing to reorder
+
+    pre = argv[:sub_pos]   # flags before subcommand
+    rest = argv[sub_pos:]  # subcommand + its args
+
+    # extract --format and --output with values from pre-subcommand portion
+    hoisted: list[str] = []
+    remaining_pre: list[str] = []
+    i = 0
+    while i < len(pre):
+        tok = pre[i]
+        if tok in ("--format", "--output") and i + 1 < len(pre):
+            hoisted.extend([tok, pre[i + 1]])
+            i += 2
+        else:
+            remaining_pre.append(tok)
+            i += 1
+
+    return remaining_pre + rest + hoisted
 
 
 def main(argv=None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
+    argv = _reorder_global_flags(argv)
     parser = build_parser()
     args = parser.parse_args(argv)
     if not getattr(args, "command", None):
