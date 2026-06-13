@@ -20,6 +20,35 @@ pip install cognis-evalbench
 evalbench scan .            # → prioritized findings in seconds
 ```
 
+## Usage — step by step
+
+1. **Install** the harness:
+
+   ```bash
+   pip install cognis-evalbench
+   ```
+
+2. **Try the bundled golden set** (no files needed), or run your own suite JSON and save the result for later gating:
+
+   ```bash
+   evalbench demo
+   evalbench run suite.json --save baseline.json
+   ```
+
+3. **Gate a candidate against a baseline.** `gate` accepts saved run results or raw suites and flags score drops beyond `--tolerance` (add `--strict` for pass-rate / mean-score regressions):
+
+   ```bash
+   evalbench gate baseline.json candidate.json --tolerance 0.02 --format json
+   ```
+
+4. **Read the result.** `evalbench types` lists the assertion types (contains, regex, json-schema, similarity, latency, cost, and more). Exit `0` = success, `1` = case failure / regression, `2` = usage/IO error.
+
+5. **Automate in CI.** Evaluate then gate so regressions fail the build:
+
+   ```bash
+   evalbench run suite.json --save run.json && evalbench gate baseline.json run.json
+   ```
+
 ## Contents
 
 - [Why evalbench?](#why) · [Features](#features) · [Quick start](#quick-start) · [Example](#example) · [Architecture](#architecture) · [AI stack](#ai-stack) · [How it compares](#how-it-compares) · [Integrations](#integrations) · [Install anywhere](#install-anywhere) · [Related](#related) · [Contributing](#contributing)
