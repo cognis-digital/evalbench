@@ -331,12 +331,18 @@ def _eval_one(spec: dict, output: str, metrics: dict) -> tuple[bool, float, str]
 
     if atype == "regex":
         flags = re.IGNORECASE if ci else 0
-        ok = re.search(val, output, flags) is not None
+        try:
+            ok = re.search(val, output, flags) is not None
+        except re.error as exc:
+            raise EvalError(f"invalid regex {val!r}: {exc}") from None
         return ok, 1.0 if ok else 0.0, f"/{val}/ {'matched' if ok else 'no match'}"
 
     if atype == "not-regex":
         flags = re.IGNORECASE if ci else 0
-        ok = re.search(val, output, flags) is None
+        try:
+            ok = re.search(val, output, flags) is None
+        except re.error as exc:
+            raise EvalError(f"invalid regex {val!r}: {exc}") from None
         return ok, 1.0 if ok else 0.0, f"/{val}/ {'absent' if ok else 'matched'}"
 
     if atype == "starts-with":
