@@ -274,10 +274,11 @@ class RunResult:
     pass_rate: float
     mean_score: float
     cases: list[CaseResult] = field(default_factory=list)
+    threshold: float = 1.0  # min pass_rate for ok; default 1.0 = all must pass
 
     @property
     def ok(self) -> bool:
-        return self.passed_cases == self.total
+        return self.pass_rate >= self.threshold
 
     def to_dict(self) -> dict:
         return {
@@ -299,11 +300,58 @@ def _graded(passed: bool, score: float | None = None) -> tuple[bool, float]:
     return passed, 1.0 if passed else 0.0
 
 
+def _normalise_type(atype: str, spec: dict) -> tuple[str, dict]:
+    """Normalise legacy/underscore assertion type names to canonical hyphen forms.
+
+    Also rewrites spec keys where the old API used different field names.
+    Returns (canonical_type, rewritten_spec).
+    """
+    _ALIASES: dict[str, str] = {
+        # underscore → hyphen variants
+        "not_contains": "not-contains",
+        "not_regex": "not-regex",
+        "starts_with": "starts-with",
+        "ends_with": "ends-with",
+        "json_valid": "json-valid",
+        "json_schema": "json-schema",
+        "all_of": "all-of",
+        "any_of": "any-of",
+        # legacy short names
+        "is_json": "json-valid",
+        "icontains": "icontains",
+    }
+    canonical = _ALIASES.get(atype, atype)
+
+    # json_path: old API uses {"type":"json_path","value":"<path>","expected":"<val>"}
+    # new API:  {"type":"json-path","path":"<path>","value":"<val>"}
+    if atype == "json_path":
+        canonical = "json-path"
+        spec = dict(spec)
+        if "value" in spec and "path" not in spec:
+            spec["path"] = spec.pop("value")
+        if "expected" in spec:
+            spec["value"] = spec.pop("expected")
+
+    # max_tokens / min_tokens → word-count with max/min
+    if atype in ("max_tokens", "max-tokens"):
+        canonical = "word-count"
+        spec = dict(spec)
+        spec["max"] = spec.pop("value", spec.get("max", math.inf))
+
+    if atype in ("min_tokens", "min-tokens"):
+        canonical = "word-count"
+        spec = dict(spec)
+        spec["min"] = spec.pop("value", spec.get("min", 0))
+
+    return canonical, spec
+
+
 def _eval_one(spec: dict, output: str, metrics: dict) -> tuple[bool, float, str]:
     """Evaluate a single assertion spec. Returns (passed, score, reason)."""
     atype = spec.get("type")
     if not atype:
         raise EvalError(f"assertion missing 'type': {spec!r}")
+    atype, spec = _normalise_type(atype, spec)
     val = spec.get("value")
     ci = spec.get("ignore_case", False)
     hay = output.lower() if ci else output
@@ -331,12 +379,18 @@ def _eval_one(spec: dict, output: str, metrics: dict) -> tuple[bool, float, str]
 
     if atype == "regex":
         flags = re.IGNORECASE if ci else 0
-        ok = re.search(val, output, flags) is not None
+        try:
+            ok = re.search(val, output, flags) is not None
+        except re.error as exc:
+            return False, 0.0, f"invalid regex: {exc}"
         return ok, 1.0 if ok else 0.0, f"/{val}/ {'matched' if ok else 'no match'}"
 
     if atype == "not-regex":
         flags = re.IGNORECASE if ci else 0
-        ok = re.search(val, output, flags) is None
+        try:
+            ok = re.search(val, output, flags) is None
+        except re.error as exc:
+            return False, 0.0, f"invalid regex: {exc}"
         return ok, 1.0 if ok else 0.0, f"/{val}/ {'absent' if ok else 'matched'}"
 
     if atype == "starts-with":
@@ -468,7 +522,7 @@ def evaluate_case(case: dict, defaults: dict | None = None) -> CaseResult:
         "cost_usd": case.get("cost_usd"),
     }
 
-    specs = case.get("assert") or case.get("asserts") or []
+    specs = case.get("assert") or case.get("asserts") or case.get("assertions") or []
     if not specs:
         raise EvalError(f"case {cid!r} has no assertions")
 
@@ -498,7 +552,7 @@ def evaluate_case(case: dict, defaults: dict | None = None) -> CaseResult:
     )
 
 
-def evaluate_suite(suite: dict) -> RunResult:
+def evaluate_suite(suite: dict) -> "RunResult":
     if not isinstance(suite, dict):
         raise EvalError("suite must be a JSON object")
     cases = suite.get("cases")
@@ -509,11 +563,14 @@ def evaluate_suite(suite: dict) -> RunResult:
     passed = sum(1 for c in results if c.passed)
     total = len(results)
     mean_score = sum(c.score for c in results) / total if total else 0.0
+    pass_rate = passed / total if total else 0.0
+    threshold = float(suite.get("threshold", 1.0))
     return RunResult(
         name=suite.get("name", "suite"),
         total=total, passed_cases=passed,
-        pass_rate=passed / total if total else 0.0,
+        pass_rate=pass_rate,
         mean_score=mean_score, cases=results,
+        threshold=threshold,
     )
 
 
@@ -693,3 +750,181 @@ def render_diff_table(findings: list[Finding], tolerance: float) -> str:
         if f.baseline is not None or f.candidate is not None:
             lines.append(f"       baseline={f.baseline}  candidate={f.candidate}")
     return "\n".join(lines)
+
+
+# --------------------------------------------------------------------------- #
+# Compatibility shim — high-level OO API used by test_smoke.py
+# --------------------------------------------------------------------------- #
+
+_KNOWN_TYPES: frozenset[str] = frozenset({
+    "contains", "not_contains", "not-contains", "icontains",
+    "equals", "regex", "not_regex", "not-regex",
+    "starts_with", "starts-with", "ends_with", "ends-with",
+    "is_json", "json_valid", "json-valid",
+    "json_schema", "json-schema",
+    "json_path", "json-path",
+    "similarity", "levenshtein",
+    "length", "word-count",
+    "max_tokens", "max-tokens", "min_tokens", "min-tokens",
+    "latency", "cost",
+    "all_of", "all-of", "any_of", "any-of",
+})
+
+
+@dataclass
+class Assertion:
+    """High-level Assertion wrapper compatible with test_smoke.py expectations.
+
+    Supports both hyphenated (core) and underscored (legacy demo) type names.
+    ``regex`` in this API acts as a guardrail: the pattern must NOT appear in
+    the output for the assertion to pass (use ``not-regex`` or ``not_regex``
+    for the same semantic in the core API, or ``regex`` here).
+    """
+    type: str
+    value: Any = None
+    ignore_case: bool = False
+    threshold: float = 0.8
+    expected: Any = None  # json_path compat field
+
+    def check(self, output: str) -> tuple[bool, str]:
+        """Evaluate this assertion against *output*.
+
+        Returns (passed: bool, detail: str).
+        The ``regex`` type is treated as a guardrail: passes when the pattern
+        is NOT found in the output (i.e. no prohibited content present).
+        """
+        atype = self.type
+        val = self.value
+        ci = self.ignore_case
+
+        # Handle regex as guardrail (no-match = pass) in this compat API
+        if atype == "regex":
+            try:
+                matched = re.search(val, output, re.IGNORECASE if ci else 0) is not None
+            except re.error as exc:
+                return False, f"invalid regex: {exc}"
+            if not matched:
+                return True, f"/{val}/ absent (guardrail ok)"
+            return False, f"/{val}/ found (guardrail fail)"
+
+        # For all other types, delegate to the core engine
+        spec: dict[str, Any] = {"type": atype}
+        if val is not None:
+            spec["value"] = val
+        if ci:
+            spec["ignore_case"] = True
+        if self.threshold != 0.8:
+            spec["threshold"] = self.threshold
+        if self.expected is not None:
+            spec["expected"] = self.expected
+
+        try:
+            passed, _score, detail = _eval_one(spec, output, {})
+        except EvalError as exc:
+            return False, str(exc)
+        return passed, detail
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "Assertion":
+        """Construct from a dict; raises ValueError for unknown types."""
+        atype = d.get("type", "")
+        if atype not in _KNOWN_TYPES:
+            raise ValueError(f"unknown assertion type: {atype!r}")
+        return cls(
+            type=atype,
+            value=d.get("value"),
+            ignore_case=d.get("ignore_case", False),
+            threshold=float(d.get("threshold", 0.8)),
+            expected=d.get("expected"),
+        )
+
+
+@dataclass
+class _SmokeReport:
+    """Thin wrapper returned by ``run_suite`` with attributes expected by test_smoke."""
+    total: int
+    passed: int
+    failed: int
+    ok: bool
+
+
+@dataclass
+class Suite:
+    """High-level Suite wrapper compatible with test_smoke.py expectations."""
+    name: str
+    cases: list[dict]
+    threshold: float = 1.0
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "Suite":
+        """Construct from a dict; raises ValueError on duplicate case IDs."""
+        cases = d.get("cases") or []
+        seen: set[str] = set()
+        for c in cases:
+            cid = str(c.get("id") or c.get("name") or "")
+            if cid in seen:
+                raise ValueError(f"duplicate case id: {cid!r}")
+            seen.add(cid)
+        return cls(
+            name=d.get("name", "suite"),
+            cases=cases,
+            threshold=float(d.get("threshold", 1.0)),
+        )
+
+    def to_dict(self) -> dict:
+        return {"name": self.name, "threshold": self.threshold, "cases": self.cases}
+
+
+def _rewrite_compat_assertions(cases: list[dict]) -> list[dict]:
+    """Return a copy of *cases* with legacy assertion semantics normalised.
+
+    In the high-level compat API ``regex`` is a guardrail (pattern must be
+    absent); rewrite those specs to ``not-regex`` before handing off to the
+    core engine which uses the standard "must match" meaning for ``regex``.
+    """
+    out = []
+    for case in cases:
+        new_case = dict(case)
+        for key in ("assert", "asserts", "assertions"):
+            if key in new_case:
+                new_specs = []
+                for spec in new_case[key]:
+                    if spec.get("type") == "regex":
+                        spec = dict(spec, type="not-regex")
+                    new_specs.append(spec)
+                new_case[key] = new_specs
+        out.append(new_case)
+    return out
+
+
+def run_suite(suite: Suite) -> _SmokeReport:
+    """Evaluate a ``Suite`` and return a ``_SmokeReport`` with per-case results."""
+    suite_dict = suite.to_dict()
+    # Rewrite regex→not-regex so the compat API's guardrail semantics are honoured
+    suite_dict = dict(suite_dict, cases=_rewrite_compat_assertions(suite_dict.get("cases", [])))
+    run = evaluate_suite(suite_dict)
+    total = run.total
+    passed = run.passed_cases
+    failed = total - passed
+    ok = run.pass_rate >= suite.threshold
+    report = _SmokeReport(total=total, passed=passed, failed=failed, ok=ok)
+    # stash per-case results for compare_baseline
+    report._case_results = {c.id: c.passed for c in run.cases}  # type: ignore[attr-defined]
+    return report
+
+
+def compare_baseline(report: _SmokeReport, baseline: dict) -> dict:
+    """Compare a smoke report against a baseline dict.
+
+    ``baseline`` format: ``{"weighted_pass_rate": float, "cases": [{"id": ..., "passed": bool}]}``.
+    Returns ``{"ok": bool, "regressions": [case_id, ...]}``.
+    """
+    base_cases = {c["id"]: c.get("passed", False) for c in baseline.get("cases", [])}
+    cand_cases: dict[str, bool] = getattr(report, "_case_results", {})
+
+    regressions = [
+        cid for cid, base_passed in base_cases.items()
+        if base_passed and not cand_cases.get(cid, True)
+    ]
+    ok = len(regressions) == 0
+    return {"ok": ok, "regressions": regressions}

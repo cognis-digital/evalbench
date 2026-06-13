@@ -20,6 +20,12 @@ pip install "git+https://github.com/cognis-digital/evalbench.git"
 evalbench scan .            # → prioritized findings in seconds
 ```
 
+<!-- cognis:layman:start -->
+## What is this?
+
+evalbench is a testing tool for AI language models and agents. You give it a set of example inputs and the responses you want, and it checks whether your AI is actually producing those responses correctly. It can catch when a model update makes things worse — for example, if a chatbot that used to answer refund questions correctly suddenly stops — before that change reaches real users. It is designed for developers and teams who build or maintain AI-powered features and want a simple, no-cloud-required way to run those checks automatically in their development pipeline.
+<!-- cognis:layman:end -->
+
 ## Contents
 
 - [Why evalbench?](#why) · [Features](#features) · [Quick start](#quick-start) · [Example](#example) · [Architecture](#architecture) · [AI stack](#ai-stack) · [How it compares](#how-it-compares) · [Integrations](#integrations) · [Install anywhere](#install-anywhere) · [Related](#related) · [Contributing](#contributing)
@@ -45,6 +51,42 @@ CI for agents
 <div align="right"><a href="#top">↑ back to top</a></div>
 
 <a name="quick-start"></a>
+<!-- cognis:install:start -->
+## Install
+
+`evalbench` is source-available (not published to PyPI) — every method below installs
+straight from GitHub. Pick whichever you prefer; the one-line scripts auto-detect
+the best tool available on your machine.
+
+**One-liner (Linux / macOS):**
+```sh
+curl -fsSL https://raw.githubusercontent.com/cognis-digital/evalbench/HEAD/install.sh | sh
+```
+
+**One-liner (Windows PowerShell):**
+```powershell
+irm https://raw.githubusercontent.com/cognis-digital/evalbench/HEAD/install.ps1 | iex
+```
+
+**Or install manually — any one of:**
+```sh
+pipx install "git+https://github.com/cognis-digital/evalbench.git"     # isolated (recommended)
+uv tool install "git+https://github.com/cognis-digital/evalbench.git"  # uv
+pip install "git+https://github.com/cognis-digital/evalbench.git"      # pip
+```
+
+**From source:**
+```sh
+git clone https://github.com/cognis-digital/evalbench.git
+cd evalbench && pip install .
+```
+
+Then run:
+```sh
+evalbench --help
+```
+<!-- cognis:install:end -->
+
 ## Quick start
 
 ```bash
