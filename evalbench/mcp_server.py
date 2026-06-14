@@ -1,6 +1,8 @@
-"""EVALBENCH MCP server — exposes scan() as an MCP tool for Cognis.Studio."""
+"""EVALBENCH MCP server — exposes evaluate_suite() as an MCP tool for Cognis.Studio."""
 from __future__ import annotations
-from evalbench.core import scan, to_json
+import json
+from evalbench.core import evaluate_suite, EvalError
+
 
 def serve() -> int:
     """Start an MCP stdio server. Requires the optional 'mcp' extra:
@@ -14,9 +16,17 @@ def serve() -> int:
     app = FastMCP("evalbench")
 
     @app.tool()
-    def evalbench_scan(target: str) -> str:
-        """Offline LLM / agent eval harness with regression gates. Returns JSON findings."""
-        return to_json(scan(target))
+    def evalbench_run(suite_json: str) -> str:
+        """Evaluate a suite JSON string with the evalbench harness. Returns JSON run result."""
+        try:
+            suite = json.loads(suite_json)
+        except (ValueError, TypeError) as exc:
+            return json.dumps({"error": f"invalid JSON: {exc}"})
+        try:
+            run = evaluate_suite(suite)
+        except EvalError as exc:
+            return json.dumps({"error": str(exc)})
+        return json.dumps(run.to_dict(), indent=2)
 
     app.run()
     return 0

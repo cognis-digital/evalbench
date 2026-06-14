@@ -510,8 +510,18 @@ def evaluate_case(case: dict, defaults: dict | None = None) -> CaseResult:
     if "output" in case:
         output = case["output"]
     elif "output_file" in case:
-        with open(case["output_file"], "r", encoding="utf-8") as fh:
-            output = fh.read()
+        path = case["output_file"]
+        if not isinstance(path, str) or not path:
+            raise EvalError(f"case {cid!r}: 'output_file' must be a non-empty string")
+        try:
+            with open(path, "r", encoding="utf-8") as fh:
+                output = fh.read()
+        except FileNotFoundError:
+            raise EvalError(f"case {cid!r}: output_file not found: {path!r}")
+        except IsADirectoryError:
+            raise EvalError(f"case {cid!r}: output_file is a directory: {path!r}")
+        except PermissionError as exc:
+            raise EvalError(f"case {cid!r}: cannot read output_file {path!r}: {exc}")
     else:
         raise EvalError(f"case {cid!r} has no 'output' or 'output_file'")
     if not isinstance(output, str):
@@ -558,7 +568,14 @@ def evaluate_suite(suite: dict) -> "RunResult":
     cases = suite.get("cases")
     if not cases:
         raise EvalError("suite has no 'cases'")
+    if not isinstance(cases, list):
+        raise EvalError("suite 'cases' must be a list")
+    for i, c in enumerate(cases):
+        if not isinstance(c, dict):
+            raise EvalError(f"suite 'cases[{i}]' must be a JSON object, got {type(c).__name__}")
     defaults = suite.get("defaults", {})
+    if not isinstance(defaults, dict):
+        defaults = {}
     results = [evaluate_case(c, defaults) for c in cases]
     passed = sum(1 for c in results if c.passed)
     total = len(results)

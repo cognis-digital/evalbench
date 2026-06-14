@@ -18,14 +18,22 @@ from . import core
 
 
 def _load_json(path: str):
-    with open(path, "r", encoding="utf-8") as fh:
-        return json.load(fh)
+    try:
+        with open(path, "r", encoding="utf-8") as fh:
+            return json.load(fh)
+    except IsADirectoryError:
+        raise core.EvalError(f"{path!r} is a directory, not a JSON file")
+    except PermissionError as exc:
+        raise core.EvalError(f"permission denied reading {path!r}: {exc}")
 
 
 def _emit(text: str, output: str | None) -> None:
     if output:
-        with open(output, "w", encoding="utf-8") as fh:
-            fh.write(text)
+        try:
+            with open(output, "w", encoding="utf-8") as fh:
+                fh.write(text)
+        except OSError as exc:
+            raise core.EvalError(f"cannot write output to {output!r}: {exc}")
         print(f"[{core.TOOL_NAME}] wrote {output}", file=sys.stderr)
     else:
         print(text)
@@ -34,8 +42,11 @@ def _emit(text: str, output: str | None) -> None:
 def _run_suite(suite: dict, args) -> int:
     run = core.evaluate_suite(suite)
     if args.save:
-        with open(args.save, "w", encoding="utf-8") as fh:
-            json.dump(run.to_dict(), fh, indent=2)
+        try:
+            with open(args.save, "w", encoding="utf-8") as fh:
+                json.dump(run.to_dict(), fh, indent=2)
+        except OSError as exc:
+            raise core.EvalError(f"cannot write save file {args.save!r}: {exc}")
         print(f"[{core.TOOL_NAME}] saved run to {args.save}", file=sys.stderr)
 
     if args.format == "json":
@@ -62,12 +73,17 @@ def _as_run(doc: dict) -> dict:
     suite is given, evaluate it on the fly so the gate always sees run results.
     """
     cases = doc.get("cases") or []
-    if cases and ("assert" in cases[0] or "asserts" in cases[0]):
+    first = cases[0] if cases else None
+    if isinstance(first, dict) and ("assert" in first or "asserts" in first):
         return core.evaluate_suite(doc).to_dict()
     return doc
 
 
 def _cmd_gate(args) -> int:
+    if args.tolerance < 0.0:
+        print(f"[{core.TOOL_NAME}] error: --tolerance must be >= 0 (got {args.tolerance})",
+              file=sys.stderr)
+        return 2
     baseline = _as_run(_load_json(args.baseline))
     candidate = _as_run(_load_json(args.candidate))
 
@@ -210,7 +226,7 @@ def main(argv=None) -> int:
         return 2
     try:
         return args.func(args)
-    except FileNotFoundError as exc:
+    except (FileNotFoundError, OSError) as exc:
         print(f"[{core.TOOL_NAME}] error: {exc}", file=sys.stderr)
         return 2
     except (core.EvalError, json.JSONDecodeError) as exc:
